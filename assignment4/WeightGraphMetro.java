@@ -46,6 +46,14 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 // Modified by Anthony Talevi on November 30th
 public class WeightGraphMetro {
 	Graph<String, Integer> sGraph;
@@ -57,6 +65,10 @@ public class WeightGraphMetro {
 
 	Integer numStations;
 	Integer numConnections;
+
+	//map and set of visited nodes
+	Map<Vertex, Vertex> visited;
+   	Set<Vertex> explored;
 
 	/**
 	 * Create a WeightGraph from file
@@ -203,21 +215,65 @@ public class WeightGraphMetro {
 	}
 
 	/**
-	 * Print the shortest distances
-	 * Modified by Thais Bardini on November 19th, 2017 (tbard069@uottawa.ca)
-	 * @throws Exception
+	 * return the shortest distances
+	 * 
 	 */
-	void printAllShortestDistances(String vert) throws Exception {
-        Vertex<String> vSource = getVertex( vert );
+	private Set<Vertex> shortestPaths(Vertex element) {
+        List<Vertex> neighbours;
+        int index = 0;
+        for (Object temp : sGraph.outgoingEdges(element)){
+        	neighbours.add(index, sGraph.opposite(element, (Edge)sGraph.outgoingEdges(element)));
+        	index ++;
+        }
 
-        // Your code here!
+        Integer totalTime;
+        int weight;
+        for (Vertex tmp : neighbours) {
+            if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
+            	weight = (shortestOnePath(element) + (int)sGraph.getEdge(element, tmp).getElement());
+                totalTime= totalTime + weight;
+                visited.put(tmp, element);
+                explored.add(tmp);
+            }
+        }
 
-        // Find shortest path
+        System.out.println("Total time = " + weight);
+        return explored;
+    }
 
-        // Print shortest path to named cities
+/**
+*returns the shortest distances when a given line is not functioning
+*
+*/
+	private Set<Vertex> shortestPaths(Vertex element, Vertex start, Vertex end) {
+	    //Iterable<Edge<E>> neighbours = getNeighbors(element);
+	    List<Vertex> neighbours;
+        int index = 0;
+        for (Object temp : sGraph.outgoingEdges(element)){
+        	neighbours.add(index, sGraph.opposite(element, (Edge)sGraph.outgoingEdges(element)));
+        	index ++;
+        }
+	    Integer totalTime;
+	    int weight;
+	    for (Vertex tmp : neighbours) {
+	    	if (start.shortestPaths(end).contains(tmp)){
+	    		for (Vertex n : tmp.getNeighbours()){
+	    			if (getEdge(n,tmp).getElement() == -1){
+	    				predecessors.put(n, element);
+	    				unSettledNodes.add(n);
+	    			}
+	    		}
+	    	}
+	        if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
+	        	weight = (shortestOnePath(element)+ getDistance(element, tmp));
+	            totalTime= totalTime + weight;
+	            unSettledNodes.add(tmp);
+	        }
+	    }
 
-        return;
-	}
+	    System.out.println("Total time = " + weight);
+        return unSettledNodes;
+}
 
 
 
@@ -229,4 +285,23 @@ public class WeightGraphMetro {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		return reader.readLine();
 	}
+
+	private int getDistance(Vertex node, Vertex element) {
+        for (Edge edge : sGraph.edges()) {
+            if (edge.equals(node) && endVertices(edge).equals(element)) {
+                return edge.getElement();
+            }
+        }
+        throw new RuntimeException("Should not happen");
+    }
+
+    private int shortestOnePath(Vertex v){
+    	int d = getEdge(v, v.getOpposite()).getElement();
+        if (d == null) {
+            return Integer.MAX_VALUE;
+        } else {
+            return d;
+        }
+    }
+
 }
