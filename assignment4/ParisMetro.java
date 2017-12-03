@@ -21,22 +21,36 @@ import java.util.Iterator;
 
 public class ParisMetro{
 
-  WeightGraph parisMetro;
+  WeightGraphMetro parisMetro;
   //Based on the non-static read(String fileName) funciton in WeightGraph
-  public static WeightGraph readMetro(String fileName) throws Exception, IOException{
-    WeightGraph submap = new WeightGraph(fileName);
+  public static WeightGraphMetro readMetro(String fileName) throws Exception, IOException{
+
+    WeightGraphMetro submap = new WeightGraphMetro(fileName);
     return submap;
   }
 
   public ParisMetro(String fileName)throws Exception, IOException{
-    try{
       parisMetro = readMetro(fileName);
-    } catch (IOException e){
-      System.out.println("File cannot be found");
-    }
+      parisMetro.print();
   }
 
+  // public void allStationsOnLine(Vertex<String> firstStation){
+  //
+  //   //To hold all connected stations
+  //   List<Vertex<String>> ontheline;
+  //
+  //   Iterable<Edge<Integer>> directOut = parisMetro.outgoingEdges(firstStation);
+  //
+  // }
+
+  public static void main(String[] args) throws Exception, IOException{
+    try{
+      ParisMetro a = new ParisMetro(args[0]);
+    } catch(IOException e){
+      System.out.println(e.getMessage());
+    }
 
 
+  }
 
 }
