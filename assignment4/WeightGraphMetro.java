@@ -256,7 +256,7 @@ public class WeightGraphMetro {
 	    Integer totalTime;
 	    int weight;
 	    for (Vertex tmp : neighbours) {
-	    	if (start.shortestPaths(end).contains(tmp)){
+	    	if (stationsOnLine(start).contains(tmp)){
 	    		for (Vertex n : tmp.getNeighbours()){
 	    			if (getEdge(n,tmp).getElement() == -1){
 	    				predecessors.put(n, element);
