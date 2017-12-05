@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-import net.datastructures.LinkedQueue;
+import java.util.LinkedHashMap;
+import java.util.Collection;
+import net.datastructures.LinkedStack;
 
 
 public class ParisMetro{
@@ -28,14 +30,6 @@ public class ParisMetro{
   //A hash map to act as a station name lookup table.
   Hashtable<String, String> stations;
 
-
-
-  // //Based on the non-static read(String fileName) funciton in WeightGraph
-  // public static WeightGraphMetro readMetro(String fileName) throws Exception, IOException{
-  //
-  //   WeightGraphMetro submap = new WeightGraphMetro(fileName);
-  //   return submap;
-  // }
 
   public ParisMetro(String fileName)throws Exception, IOException{
       parisMetro = new AdjacencyMapGraph<String, Integer>(true);
@@ -54,7 +48,6 @@ public class ParisMetro{
 		Hashtable<String, Vertex> vertices = new Hashtable<String, Vertex>();
 
 		// Read the edges and insert
-
 
 		String line;
 
@@ -146,42 +139,67 @@ public class ParisMetro{
     return sGraph;
   }
 
-  // public void allStationsOnLine(Vertex<String> firstStation){
-  //
-  //   //To hold all connected stations
-  //   List<Vertex<String>> ontheline;
-  //
-  //   Iterable<Edge<Integer>> directOut = parisMetro.outgoingEdges(firstStation);
-  //
-  // }
-
   public static void main(String[] args) throws Exception, IOException{
     try{
       ParisMetro a = new ParisMetro(args[0]);
+      if(args.length>1){
+        String vert = args[1];
+        LinkedHashMap<String, Vertex<String>> line = a.stationsOnLine(vert);
+        Collection<Vertex<String>> col = line.values();
+        Iterator<Vertex<String>> iter = col.iterator();
+        String s = "";
+        while(iter.hasNext()){
+           s += iter.next().getElement();
+           s += " ";
+           iter.remove();
+        }
+        System.out.println(s);
+        //System.out.println(line.toString());
+      }
     } catch(IOException e){
       System.out.println(e.getMessage());
     }
   }
 
-  public void stationsOnLine(Vertex<String> start){
-    /* metro.txt file lists multiple vertices per station, representing the
-    *  different lines connected to the station.
-    *  What this means is that if we ask for all vertices connected to a vertex,
-    *  it will only return those on the same line as that
-    *  vertex, not necessarily all of the vertices connected to a station.
-    */
+  public LinkedHashMap<String, Vertex<String>> stationsOnLine(String start)throws Exception, IOException{
+    //Stack holding all
+    LinkedStack<Vertex<String>> toVisit = new LinkedStack<Vertex<String>>();
+    // Create a hash map to store all the vertices already visited
+    LinkedHashMap<String, Vertex<String>> visited = new LinkedHashMap<String, Vertex<String>>();
 
-    //List of all stations
-    LinkedQueue<Vertex<String>> stations = new LinkedQueue<Vertex<String>>();
-    stations.enqueue(start);
+    Vertex<String> first;
+    try{
+      first = getVertex(start);
+    } catch(IOException e){throw new IOException(e);}
 
-    //Graph is directed
-    Iterator<Edge<Integer>> outgoing = (parisMetro.outgoingEdges(start)).iterator();
-    Iterator<Edge<Integer>> incoming = (parisMetro.incomingEdges(start)).iterator();
+      toVisit.push(first);
+      visited.put(start, first);S
 
-    while(outgoing.hasNext()){}
 
+    //While there are still nodes to visit
+    while(!toVisit.isEmpty()){
+      Vertex<String> currVert = toVisit.pop();        //Get the next element to visit
+      Iterator<Edge<Integer>> outgoing = (parisMetro.outgoingEdges(currVert)).iterator();       //Return an iter with all outgoing edges
+      while(outgoing.hasNext()){        //while iter still has elements
+        Edge<Integer> nextEdge = outgoing.next();     //Get the next element
+        if(nextEdge.getElement() > 0){
+          Vertex<String> w = parisMetro.opposite(currVert, nextEdge);
+          if(!visited.containsKey(w.getElement())){    //If the element hasn't already been visited
+            toVisit.push(w);
+            visited.put(w.getElement(), w);
+          }
+        }
+      }
+    }
+    return visited;
   }
 
-
+  //Needs to be cited
+  private Vertex<String> getVertex(String s) throws Exception{
+      for(Vertex<String> vs : parisMetro.vertices()){
+        if((vs.getElement()).equals(s)){
+          return vs;
+        }
+      }throw new IOException ("Vertex not in graph: " + s);
+  }
 }
