@@ -24,9 +24,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import net.datastructures.HeapAdaptablePriorityQueue;
+import net.datastructures.LinkedStack;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import net.datastructures.Entry;
 
 
 public class ParisMetro{
@@ -37,8 +40,8 @@ public class ParisMetro{
   Hashtable<String, String> stations;
 
   //map and set of visited nodes
-  Map<Vertex, Vertex> visited;
-  Set<Vertex> explored;
+  // Map<Vertex, Vertex> visited;
+  // Set<Vertex> explored;
 
 
 
@@ -104,6 +107,7 @@ public class ParisMetro{
 
 		//Continue until end of the file
 		while((line = graphFile.readLine())!=null){
+      System.out.println(line);
 
 			//String Tokenizer will iterate through the line
 			StringTokenizer st = new StringTokenizer(line);
@@ -158,21 +162,14 @@ public class ParisMetro{
     return sGraph;
   }
 
-  // public void allStationsOnLine(Vertex<String> firstStation){
-  //
-  //   //To hold all connected stations
-  //   List<Vertex<String>> ontheline;
-  //
-  //   Iterable<Edge<Integer>> directOut = parisMetro.outgoingEdges(firstStation);
-  //
-  // }
-
   public static void main(String[] args) throws Exception, IOException{
     try{
       ParisMetro a = new ParisMetro(args[0]);
+      a.shortestPath(args[1], args[2]);
     } catch(IOException e){
       System.out.println(e.getMessage());
     }
+
   }
 
   public void stationsOnLine(Vertex<String> start){
@@ -194,56 +191,124 @@ public class ParisMetro{
     while(outgoing.hasNext()){}
 
   }
-/**
-	 * return the shortest distances
-	 * 
-	 */
-	private Set<Vertex> shortestPaths(Vertex element) {
-        List<Vertex> neighbours = getNeighbours(element);
-        Integer totalTime;
-        int weight;
-        for (Vertex tmp : neighbours) {
-            if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
-            	weight = (shortestOnePath(element) + (int)parisMetro.getEdge(element, tmp).getElement());
-                totalTime= totalTime + weight;
-                visited.put(tmp, element);
-                explored.add(tmp);
-            }
-        }
 
-        System.out.println("Total time = " + weight);
-        return explored;
+  public void shortestPath(String st, String ed) throws Exception, IOException{
+    int max = 1000000;          //Max value to act as infinity
+    Vertex<String> start;
+    Vertex<String> end;
+    try{
+    start = getVertex(st);
+    end = getVertex(ed);
+  } catch(IOException e){throw e;}
+
+    HashMap<Vertex<String>, Integer> distances = new HashMap();       //Hashmap to store distances from vertex
+    HashMap<String, Edge<Integer>> lastAdded = new HashMap();  //HashMap to store last edge to get to vertex
+    HashMap<String, Vertex<String>> doneVisiting = new HashMap(); //So algorithm doesn't move backwards
+    //PriorityQueue to store nodes to visit
+    HeapAdaptablePriorityQueue<Integer, Vertex<String>> toVisit = new HeapAdaptablePriorityQueue();
+    HashMap<String, Entry<Integer, Vertex<String>>> entries = new HashMap<String, Entry<Integer, Vertex<String>>>();
+
+    distances.put(start, 0);        //Distance from start to start is 0
+    for(Vertex<String> v : parisMetro.vertices()){
+      if(v != start){
+        distances.put(v, max);     //Using negative value to indicate infinity
+      }
+      entries.put(v.getElement(), toVisit.insert((distances.get(v)), v));      //Insert all nodes into the priority queue
     }
 
+    while(!toVisit.isEmpty()){
+      Entry<Integer, Vertex<String>> ent = toVisit.removeMin();
+      Vertex<String> v = ent.getValue();
+      //System.out.println("Station: " + v.getElement());
+      for(Edge<Integer> e : parisMetro.outgoingEdges(v)){
+        Vertex<String> neighbour = parisMetro.opposite(v, e);
+        //System.out.println(neighbour.getElement());
+        if(!doneVisiting.containsKey(neighbour.getElement())){
+            int path;
+            if(e.getElement() == -1){
+              path = distances.get(v) + 90;
+            }
+            else{
+              path = distances.get(v) + e.getElement();
+            }
+            //System.out.println(path);
+            if(path < distances.get(neighbour)){
+              Entry<Integer, Vertex<String>> toReplace = entries.get(neighbour.getElement());;
+              toVisit.remove(toReplace);
+              toReplace = toVisit.insert(path, neighbour);
+              entries.put(neighbour.getElement(), toReplace);
+              distances.put(neighbour, path);
+              lastAdded.put(neighbour.getElement(), e);
+            }
+        }
+      }
+      doneVisiting.put(v.getElement(), v);
+    }
+    //Reconstruct shortest path, working backwards
+    LinkedStack<Vertex<String>> shortest = new LinkedStack<Vertex<String>>();
+    Vertex<String> current = end;
+    while(current!=start){
+      shortest.push(current);
+      Edge<Integer> last = lastAdded.get(current.getElement());
+      Vertex<String>[] endVerts = parisMetro.endVertices(last);
+      current = endVerts[0];
+    }
+    shortest.push(start);
+    System.out.println("Time: " + distances.get(end));
+    while(!shortest.isEmpty()){
+      System.out.println(shortest.pop().getElement());
+    }
+  }
 /**
-*returns the shortest distances when a given line is not functioning
-*
-*/
-	private Set<Vertex> shortestPaths(Vertex element, Vertex start, Vertex end) {
-	    //Iterable<Edge<E>> neighbours = getNeighbors(element);
-	    List<Vertex> neighbours = getNeighbours(element);
-	    Integer totalTime;
-	    int weight;
-	    for (Vertex tmp : neighbours) {
-	    	if (stationsOnLine(start).vertices().contains(tmp)){
-	    		for (Vertex n : getNeighbours(tmp)){
-	    			if ((int)parisMetro.getEdge(n,tmp).getElement() == -1){
-	    				weight = weight + 90;
-	    				visited.put(n, element);
-	    				explored.add(n);
-	    			}
-	    		}
-	    	}
-	        else if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
-	        	weight = (shortestOnePath(element)+ getDistance(element, tmp));
-	            totalTime= totalTime + weight;
-	            explored.add(tmp);
-	        }
-	    }
-
-	    System.out.println("Total time = " + weight);
-        return explored;
-}
+	 * return the shortest distances
+	 *
+	 */
+// 	private Set<Vertex> shortestPaths(Vertex element) {
+//         List<Vertex> neighbours = getNeighbours(element);
+//         Integer totalTime;
+//         int weight;
+//         for (Vertex tmp : neighbours) {
+//             if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
+//             	weight = (shortestOnePath(element) + (int)parisMetro.getEdge(element, tmp).getElement());
+//                 totalTime= totalTime + weight;
+//                 visited.put(tmp, element);
+//                 explored.add(tmp);
+//             }
+//         }
+//
+//         System.out.println("Total time = " + weight);
+//         return explored;
+//     }
+//
+// /**
+// *returns the shortest distances when a given line is not functioning
+// *
+// */
+// 	private Set<Vertex> shortestPaths(Vertex element, Vertex start, Vertex end) {
+// 	    //Iterable<Edge<E>> neighbours = getNeighbors(element);
+// 	    List<Vertex> neighbours = getNeighbours(element);
+// 	    Integer totalTime;
+// 	    int weight;
+// 	    for (Vertex tmp : neighbours) {
+// 	    	if (stationsOnLine(start).vertices().contains(tmp)){
+// 	    		for (Vertex n : getNeighbours(tmp)){
+// 	    			if ((int)parisMetro.getEdge(n,tmp).getElement() == -1){
+// 	    				weight = weight + 90;
+// 	    				visited.put(n, element);
+// 	    				explored.add(n);
+// 	    			}
+// 	    		}
+// 	    	}
+// 	        else if (shortestOnePath(tmp) > (shortestOnePath(element) + getDistance(element, tmp))) {
+// 	        	weight = (shortestOnePath(element)+ getDistance(element, tmp));
+// 	            totalTime= totalTime + weight;
+// 	            explored.add(tmp);
+// 	        }
+// 	    }
+//
+// 	    System.out.println("Total time = " + weight);
+//         return explored;
+// }
 
 
 
@@ -256,33 +321,39 @@ public class ParisMetro{
 		return reader.readLine();
 	}
 
-	private int getDistance(Vertex node, Vertex element) {
-        for (Edge edge : parisMetro.edges()) {
-            if (edge.equals(node) && parisMetro.endVertices(edge).equals(element)) {
-                return (int)edge.getElement();
-            }
-        }
-        throw new RuntimeException("Should not happen");
+  private Vertex<String> getVertex(String s) throws IOException{
+    for(Vertex<String> v : parisMetro.vertices()){
+      if (v.getElement().equals(s)) return v;
     }
-
-    private int shortestOnePath(Vertex v){
-    	int d = (int)parisMetro.getEdge(v, parisMetro.opposite(v, (Edge)parisMetro.outgoingEdges(v))).getElement();
-        if ((Object)d == null) {
-            return Integer.MAX_VALUE;
-        } else {
-            return d;
-        }
-    }
-
-    private List<Vertex> getNeighbours(Vertex node) {
-        List<Vertex> neighbors = new ArrayList<Vertex>();
-        int i = 0;
-        for (Edge edge : parisMetro.edges()) {
-            if (parisMetro.endVertices(edge)[0].equals(node) || parisMetro.endVertices(edge)[1].equals(node)) {
-                neighbors.add(i, parisMetro.opposite(node, (Edge)parisMetro.outgoingEdges(node)));
-            }
-            i++;
-        }
-        return neighbors;
-    }
+    throw new IOException ("Not a valid station");
+  }
 }
+// 	private int getDistance(Vertex node, Vertex element) {
+//         for (Edge edge : parisMetro.edges()) {
+//             if (edge.equals(node) && parisMetro.endVertices(edge).equals(element)) {
+//                 return (int)edge.getElement();
+//             }
+//         }
+//         throw new RuntimeException("Should not happen");
+//     }
+//
+//     private int shortestOnePath(Vertex v){
+//     	int d = (int)parisMetro.getEdge(v, parisMetro.opposite(v, (Edge)parisMetro.outgoingEdges(v))).getElement();
+//         if ((Object)d == null) {
+//             return Integer.MAX_VALUE;
+//         } else {
+//             return d;
+//         }
+//     }
+//
+//     private List<Vertex> getNeighbours(Vertex node) {
+//         List<Vertex> neighbors = new ArrayList<Vertex>();
+//         int i = 0;
+//         for (Edge edge : parisMetro.edges()) {
+//             if (parisMetro.endVertices(edge)[0].equals(node) || parisMetro.endVertices(edge)[1].equals(node)) {
+//                 neighbors.add(i, parisMetro.opposite(node, (Edge)parisMetro.outgoingEdges(node)));
+//             }
+//             i++;
+//         }
+//         return neighbors;
+//     }
